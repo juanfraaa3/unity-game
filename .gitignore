@@ -1,0 +1,24 @@
+[Libraries]
+[Ll]ibrary/
+[Tt]emp/
+[Bb]uild/
+[Bb]uilds/
+[Oo]bj/
+[Mm]emoryCaptures/
+
+# Visual Studio
+.vscode/
+*.csproj
+*.sln
+*.user
+*.suo
+*.unityproj
+
+# Mac
+.DS_Store
+
+# Logs
+*.log
+
+# Crashlytics
+crashlytics-build.properties
