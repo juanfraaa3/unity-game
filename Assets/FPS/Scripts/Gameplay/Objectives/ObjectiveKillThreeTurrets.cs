@@ -1,43 +1,32 @@
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.FPS.Game;
+using System.Collections.Generic;
 
 namespace Unity.FPS.Gameplay
 {
-    public class ObjectiveKillSpecificEnemies : Objective
+    public class ObjectiveKillSpecificEnemyType_FromSpawners : Objective
     {
-        [Tooltip("Lista de enemigos que deben morir para completar el objetivo")]
-        public List<GameObject> EnemiesToKill;
+        [Header("Configuración")]
+        [Tooltip("Nombre parcial o tag del tipo de enemigo a eliminar (por ejemplo, 'Turret' o 'EnemyTurret')")]
+        public string EnemyIdentifier = "Turret";
+
+        [Tooltip("Cantidad total de enemigos de este tipo que deben eliminarse para completar el objetivo")]
+        public int EnemiesToKillCount = 3;
+
+        [Tooltip("Siguiente objetivo a activar tras completar este (opcional)")]
+        public GameObject NextObjective;
 
         private int m_KillCount = 0;
+        private bool m_ObjectiveCompleted = false;
 
         protected override void Start()
         {
             base.Start();
 
-            if (EnemiesToKill == null || EnemiesToKill.Count == 0)
-            {
-                Debug.LogWarning("No se han asignado enemigos al objetivo.");
-                return;
-            }
+            // Suscribirse a los eventos globales
+            EventManager.AddListener<EnemyKillEvent>(OnEnemyKilled);
+            EventManager.AddListener<PlayerDeathEvent>(OnPlayerDied); // 👈 Nuevo
 
-            foreach (GameObject enemy in EnemiesToKill)
-            {
-                if (enemy != null)
-                {
-                    Health health = enemy.GetComponentInChildren<Health>();
-                    if (health != null)
-                    {
-                        health.OnDie += () => OnEnemyKilled(enemy);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("El enemigo no tiene componente Health: " + enemy.name);
-                    }
-                }
-            }
-
-            // Texto inicial
             if (string.IsNullOrEmpty(Title))
                 Title = "Elimina las torretas finales";
 
@@ -45,23 +34,61 @@ namespace Unity.FPS.Gameplay
                 Description = GetUpdatedCounter();
         }
 
-        void OnEnemyKilled(GameObject enemy)
+        void OnEnemyKilled(EnemyKillEvent evt)
         {
-            if (EnemiesToKill.Contains(enemy))
+            if (m_ObjectiveCompleted)
+                return;
+
+            if (evt.Enemy == null)
+                return;
+
+            // Verificamos si el enemigo muerto coincide con el tipo buscado
+            bool isMatch =
+                evt.Enemy.name.Contains(EnemyIdentifier) ||
+                evt.Enemy.CompareTag(EnemyIdentifier);
+
+            if (isMatch)
             {
                 m_KillCount++;
-                UpdateObjective("", GetUpdatedCounter(), "Torretas destruidas: " + m_KillCount + "/" + EnemiesToKill.Count);
+                UpdateObjective("", GetUpdatedCounter(), "Torretas destruidas: " + m_KillCount + "/" + EnemiesToKillCount);
 
-                if (m_KillCount >= EnemiesToKill.Count)
+                if (m_KillCount >= EnemiesToKillCount)
                 {
                     CompleteObjective("", GetUpdatedCounter(), "¡Has destruido todas las torretas!");
+                    m_ObjectiveCompleted = true;
+
+                    if (NextObjective != null)
+                        NextObjective.SetActive(true);
+
+                    CleanupListeners();
                 }
             }
         }
 
+        // 👇 Nuevo: si el jugador muere, se reinicia el progreso
+        void OnPlayerDied(PlayerDeathEvent evt)
+        {
+            if (m_ObjectiveCompleted)
+                return;
+
+            m_KillCount = 0;
+            UpdateObjective("", GetUpdatedCounter(), "Has muerto. Se reinicia el conteo de torretas.");
+        }
+
         string GetUpdatedCounter()
         {
-            return m_KillCount + " / " + EnemiesToKill.Count;
+            return m_KillCount + " / " + EnemiesToKillCount;
+        }
+
+        void CleanupListeners()
+        {
+            EventManager.RemoveListener<EnemyKillEvent>(OnEnemyKilled);
+            EventManager.RemoveListener<PlayerDeathEvent>(OnPlayerDied);
+        }
+
+        void OnDestroy()
+        {
+            CleanupListeners();
         }
     }
 }

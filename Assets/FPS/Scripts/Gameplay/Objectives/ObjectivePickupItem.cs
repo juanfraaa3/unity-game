@@ -1,31 +1,40 @@
-﻿using Unity.FPS.Game;
-using UnityEngine;
+﻿using UnityEngine;
+using Unity.FPS.Game;
 
 namespace Unity.FPS.Gameplay
 {
-    public class ObjectivePickupItem : Objective
+    public class ObjectivePickupItemByPrefab : Objective
     {
-        [Tooltip("Item to pickup to complete the objective")]
-        public GameObject ItemToPickup;
+        [Tooltip("Prefab del item a recoger (ej: Loot_Jetpack)")]
+        public GameObject ItemPrefab;
+
+        [Tooltip("Siguiente objetivo a activar después de este")]
+        public GameObject NextObjective;
 
         protected override void Start()
         {
             base.Start();
-
             EventManager.AddListener<PickupEvent>(OnPickupEvent);
+
+            if (string.IsNullOrEmpty(Title))
+                Title = "Recoge el objeto";
+
+            if (string.IsNullOrEmpty(Description))
+                Description = "Consigue el objeto necesario para continuar.";
         }
 
         void OnPickupEvent(PickupEvent evt)
         {
-            if (IsCompleted || ItemToPickup != evt.Pickup)
-                return;
+            if (IsCompleted || ItemPrefab == null) return;
 
-            // this will trigger the objective completion
-            // it works even if the player can't pickup the item (i.e. objective pickup healthpack while at full heath)
-            CompleteObjective(string.Empty, string.Empty, "Objective complete : " + Title);
-
-            if (gameObject)
+            // Compara por nombre del prefab (para reconocer instancias creadas en runtime)
+            if (evt.Pickup != null && evt.Pickup.name.Contains(ItemPrefab.name))
             {
+                CompleteObjective(string.Empty, string.Empty, "¡Has recogido: " + Title + "!");
+
+                if (NextObjective != null)
+                    NextObjective.SetActive(true);
+
                 Destroy(gameObject);
             }
         }

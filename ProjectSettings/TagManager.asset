@@ -6,6 +6,7 @@ TagManager:
   tags:
   - MovingPlatform
   - Checkpoint
+  - turret
   layers:
   - Default
   - TransparentFX
@@ -13,14 +14,14 @@ TagManager:
   - 
   - Water
   - UI
-  - 
+  - NavMeshOnly
   - 
   - PostProcessing
   - 
   - FirstPersonWeapon
   - PhysicalAmmo
   - 
-  - 
+  - NoGround
   - 
   - 
   - 

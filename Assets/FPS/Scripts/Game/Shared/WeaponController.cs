@@ -399,6 +399,7 @@ namespace Unity.FPS.Game
             if (m_CurrentAmmo >= 1f
                 && m_LastTimeShot + DelayBetweenShots < Time.time)
             {
+                //Debug.Log($"{WeaponName} cumple condiciones → dispara");
                 HandleShoot();
                 m_CurrentAmmo -= 1f;
 
@@ -443,6 +444,7 @@ namespace Unity.FPS.Game
 
         void HandleShoot()
         {
+            //Debug.Log($"{WeaponName} disparó en {Time.time}, Ammo={m_CurrentAmmo}");
             int bulletsPerShotFinal = ShootType == WeaponShootType.Charge
                 ? Mathf.CeilToInt(CurrentCharge * BulletsPerShot)
                 : BulletsPerShot;

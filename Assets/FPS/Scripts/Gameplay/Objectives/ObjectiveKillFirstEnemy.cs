@@ -3,63 +3,70 @@ using UnityEngine;
 
 namespace Unity.FPS.Gameplay
 {
-    public class ObjectiveKillSpecificEnemy : Objective
+    public class ObjectiveKillFromSpawner : Objective
     {
-        // Enemigo específico a eliminar
-        public GameObject EnemyToKill;
+        [Tooltip("Spawner que genera el enemigo de este objetivo")]
+        public EnemySpawnerResettable SpawnerToKill;
 
-        // Siguiente objetivo a activar
+        [Tooltip("Siguiente objetivo a activar después de completar este")]
         public GameObject NextObjective;
 
+        private GameObject m_SpawnedEnemy;
         private bool m_EnemyKilled = false;
 
         protected override void Start()
         {
             base.Start();
 
-            // Asegura que el objetivo se complete cuando el enemigo sea destruido
-            if (EnemyToKill != null)
+            if (SpawnerToKill != null)
             {
+                // Suscribirse al evento global de muerte de enemigos
                 EventManager.AddListener<EnemyKillEvent>(OnEnemyKilled);
+
+                // Buscar al enemigo instanciado por el spawner
+                CacheSpawnedEnemy();
             }
 
             if (string.IsNullOrEmpty(Title))
-                Title = "Eliminar al enemigo específico";
+                Title = "Eliminar al enemigo del spawner";
 
             if (string.IsNullOrEmpty(Description))
-                Description = "Elimina al primer enemigo para continuar el entrenamiento.";
+                Description = "Derrota al enemigo que genera el spawner.";
+        }
+
+        void CacheSpawnedEnemy()
+        {
+            // Si el spawner ya instanció algo en Start, tomamos al primer hijo como referencia
+            if (SpawnerToKill != null && SpawnerToKill.transform.childCount > 0)
+            {
+                m_SpawnedEnemy = SpawnerToKill.transform.GetChild(0).gameObject;
+            }
         }
 
         void OnEnemyKilled(EnemyKillEvent evt)
         {
-            if (IsCompleted)
+            if (IsCompleted || SpawnerToKill == null)
                 return;
 
-            // Comprobamos si el enemigo muerto es el enemigo específico
-            if (evt.Enemy == EnemyToKill)
+            // Comprobar si el enemigo muerto salió del spawner indicado
+            if (evt.Enemy != null && evt.Enemy.transform.IsChildOf(SpawnerToKill.transform))
             {
                 m_EnemyKilled = true;
             }
 
-            // Si el enemigo ha sido eliminado, completar objetivo
             if (m_EnemyKilled)
             {
                 CompleteObjective(string.Empty, string.Empty, "¡Objetivo completado! Enemigo eliminado.");
 
-                // Activar el siguiente objetivo
                 if (NextObjective != null)
-                {
                     NextObjective.SetActive(true);
-                }
 
-                // Elimina el listener para evitar que sigamos escuchando la muerte de enemigos
                 EventManager.RemoveListener<EnemyKillEvent>(OnEnemyKilled);
             }
         }
 
         void OnDestroy()
         {
-            // Elimina el listener en caso de que se destruya el objeto sin completar el objetivo
             EventManager.RemoveListener<EnemyKillEvent>(OnEnemyKilled);
         }
     }

@@ -26,6 +26,7 @@ namespace Unity.FPS.Game
         void Start()
         {
             CurrentHealth = MaxHealth;
+            Debug.Log($"{gameObject.name} inicia con {CurrentHealth}/{MaxHealth} de vida");
         }
 
         public void Heal(float healAmount)
@@ -50,6 +51,8 @@ namespace Unity.FPS.Game
             float healthBefore = CurrentHealth;
             CurrentHealth -= damage;
             CurrentHealth = Mathf.Clamp(CurrentHealth, 0f, MaxHealth);
+
+            Debug.Log($"{gameObject.name} recibió {damage}. Vida: {healthBefore} → {CurrentHealth}");
 
             // call OnDamage action
             float trueDamageAmount = healthBefore - CurrentHealth;
@@ -80,7 +83,9 @@ namespace Unity.FPS.Game
             if (CurrentHealth <= 0f)
             {
                 m_IsDead = true;
+                Debug.Log($"{gameObject.name} murió"); // 👈 LOG de muerte
                 OnDie?.Invoke();
+
             }
         }
     }

@@ -7,12 +7,14 @@ namespace Unity.FPS.Gameplay
     [RequireComponent(typeof(AudioSource))]
     public class Jetpack : MonoBehaviour
     {
-        [Header("References")] [Tooltip("Audio source for jetpack sfx")]
+        [Header("References")]
+        [Tooltip("Audio source for jetpack sfx")]
         public AudioSource AudioSource;
 
         [Tooltip("Particles for jetpack vfx")] public ParticleSystem[] JetpackVfx;
 
-        [Header("Parameters")] [Tooltip("Whether the jetpack is unlocked at the begining or not")]
+        [Header("Parameters")]
+        [Tooltip("Whether the jetpack is unlocked at the begining or not")]
         public bool IsJetpackUnlockedAtStart = false;
 
         [Tooltip("The strength with which the jetpack pushes the player up")]
@@ -23,7 +25,8 @@ namespace Unity.FPS.Gameplay
             "This will affect how much using the jetpack will cancel the gravity value, to start going up faster. 0 is not at all, 1 is instant")]
         public float JetpackDownwardVelocityCancelingFactor = 1f;
 
-        [Header("Durations")] [Tooltip("Time it takes to consume all the jetpack fuel")]
+        [Header("Durations")]
+        [Tooltip("Time it takes to consume all the jetpack fuel")]
         public float ConsumeDuration = 1.5f;
 
         [Tooltip("Time it takes to completely refill the jetpack while on the ground")]
@@ -35,7 +38,8 @@ namespace Unity.FPS.Gameplay
         [Tooltip("Delay after last use before starting to refill")]
         public float RefillDelay = 1f;
 
-        [Header("Audio")] [Tooltip("Sound played when using the jetpack")]
+        [Header("Audio")]
+        [Tooltip("Sound played when using the jetpack")]
         public AudioClip JetpackSfx;
 
         bool m_CanUseJetpack;
@@ -149,6 +153,17 @@ namespace Unity.FPS.Gameplay
             IsJetpackUnlocked = true;
             m_LastTimeOfUse = Time.time;
             return true;
+        }
+        public void LockJetpack()
+        {
+            IsJetpackUnlocked = false;
+            //CurrentFillRatio = 0f; // opcional: vacía la barra
+        }
+
+        public void UnlockJetpack()
+        {
+            IsJetpackUnlocked = true;
+            CurrentFillRatio = 1f; // opcional: recarga al máximo
         }
     }
 }

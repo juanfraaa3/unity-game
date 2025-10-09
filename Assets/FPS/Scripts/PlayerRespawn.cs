@@ -31,6 +31,16 @@ public class PlayerRespawn : MonoBehaviour
 
     void RespawnAtCheckpoint()
     {
+
+        // 🔹 Limpiar solo los pickups sueltos por enemigos (prefab Loot_Health)
+        foreach (var pickup in FindObjectsOfType<HealthPickup>())
+        {
+            if (pickup.name.Contains("Loot_Health"))
+            {
+                Destroy(pickup.gameObject);
+            }
+        }
+
         if (m_Controller != null)
             m_Controller.enabled = false;
 
@@ -44,10 +54,11 @@ public class PlayerRespawn : MonoBehaviour
         var weaponsManager = GetComponent<PlayerWeaponsManager>();
         if (weaponsManager != null)
         {
-            weaponsManager.SwitchToWeaponIndex(weaponsManager.ActiveWeaponIndex);
+            // CAMBIO ÚNICO: forzar el arma del slot 0
+            weaponsManager.SwitchToWeaponIndex(0, true);
 
             // Desactivar el apuntado (IsAiming) después de revivir
-            weaponsManager.SetAiming(false);  // Usamos el método SetAiming para desactivar el apuntado
+            weaponsManager.SetAiming(false);
         }
 
         // Reactivar HUD si está desactivado
@@ -82,6 +93,13 @@ public class PlayerRespawn : MonoBehaviour
 
         // Resetear las animaciones de la cámara y el arma (si está en ADS)
         ResetWeaponAndCamera();
+
+        // 🔥 Reiniciar las waves al reaparecer
+        var waveManager = FindObjectOfType<WaveManager>();
+        if (waveManager != null)
+        {
+            waveManager.ResetWaves();
+        }
     }
 
     void ResetWeaponAndCamera()

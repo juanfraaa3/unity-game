@@ -564,5 +564,26 @@ namespace Unity.FPS.Gameplay
                 newWeapon.ShowWeapon(true);
             }
         }
+        // Fuerza a equipar inmediatamente el arma en el índice dado
+        public void ForceEquipWeapon(int index)
+        {
+            if (index >= 0 && index < m_WeaponSlots.Length && m_WeaponSlots[index] != null)
+            {
+                ActiveWeaponIndex = index;
+                m_WeaponSwitchState = WeaponSwitchState.Up;
+                m_WeaponMainLocalPosition = DefaultWeaponPosition.localPosition;
+
+                var weapon = m_WeaponSlots[index];
+                if (weapon != null)
+                {
+                    weapon.ShowWeapon(true);
+                    if (OnSwitchedToWeapon != null)
+                    {
+                        OnSwitchedToWeapon.Invoke(weapon);
+                    }
+                }
+            }
+        }
+
     }
 }
