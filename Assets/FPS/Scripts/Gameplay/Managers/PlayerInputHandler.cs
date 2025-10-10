@@ -76,6 +76,10 @@ namespace Unity.FPS.Gameplay
 
         public bool GetJumpInputDown()
         {
+            // 🚫 Bloquear salto mientras el ascensor está subiendo o bajando
+            if (ObjectiveElevatorPoints.ElevatorIsMoving)
+                return false;
+
             if (CanProcessInput())
             {
                 return Input.GetButtonDown(GameConstants.k_ButtonNameJump);
@@ -83,6 +87,7 @@ namespace Unity.FPS.Gameplay
 
             return false;
         }
+
 
         public bool GetJumpInputHeld()
         {
@@ -148,6 +153,10 @@ namespace Unity.FPS.Gameplay
 
         public bool GetCrouchInputDown()
         {
+            // 🚫 Si el ascensor está en movimiento, bloquear el input del círculo
+            if (ObjectiveElevatorPoints.ElevatorIsMoving)
+                return false;
+
             if (CanProcessInput())
             {
                 return Input.GetButtonDown(GameConstants.k_ButtonNameCrouch);
@@ -155,6 +164,7 @@ namespace Unity.FPS.Gameplay
 
             return false;
         }
+
 
         public bool GetCrouchInputReleased()
         {

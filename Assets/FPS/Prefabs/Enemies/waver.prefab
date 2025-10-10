@@ -66,7 +66,7 @@ PrefabInstance:
     - target: {fileID: 2104015986810675393, guid: 25a1b0efadb966e44889fce712c8ff8d,
         type: 3}
       propertyPath: BulletSpreadAngle
-      value: 0.4
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 4752156053906186385, guid: 25a1b0efadb966e44889fce712c8ff8d,
         type: 3}

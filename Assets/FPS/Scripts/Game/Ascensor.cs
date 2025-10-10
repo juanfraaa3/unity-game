@@ -1,8 +1,8 @@
-using Unity.FPS.Game;   // para Health y EventManager
+using Unity.FPS.Game;
 using UnityEngine;
 using System.Collections;
 
-namespace Unity.FPS.Gameplay
+namespace Unity.FPS.Game
 {
     public class ObjectiveElevatorPoints : MonoBehaviour
     {
@@ -16,6 +16,7 @@ namespace Unity.FPS.Gameplay
 
         [Header("Player Setup")]
         public Health PlayerHealth; // arrastra aquí el Health del jugador
+        public GameObject PlayerObject; // arrastra aquí el Player (opcional)
 
         [Header("Kill Zone Setup")]
         public GameObject KillZone;
@@ -24,15 +25,18 @@ namespace Unity.FPS.Gameplay
         bool _movingUp;
         bool _movingDown;
         float _time;
-        bool _alreadyUsed;   // 👈 si quieres que solo suba una vez
-        bool _canGoDown;     // 👈 nuevo: habilita bajar cuando acaben las waves
+        bool _alreadyUsed;
+        bool _canGoDown;
 
-        // 👇 propiedad pública por si la necesita un trigger externo
+        // 🔒 Flag global para bloquear el crouch mientras el ascensor se mueve
+        public static bool ElevatorIsMoving = false;
+
         public bool HasAlreadyUsed => _alreadyUsed;
 
         void Start()
         {
-            if (PlatformToMove == null) PlatformToMove = transform;
+            if (PlatformToMove == null)
+                PlatformToMove = transform;
 
             if (PlaceAtAOnPlay && PointA != null)
                 PlatformToMove.position = PointA.position;
@@ -43,7 +47,6 @@ namespace Unity.FPS.Gameplay
             if (PlayerHealth != null)
                 PlayerHealth.OnDie += OnPlayerDeath;
 
-            // 👉 escuchar evento de WaveManager
             EventManager.AddListener<AllWavesCompletedEvent>(OnAllWavesCompleted);
         }
 
@@ -66,7 +69,7 @@ namespace Unity.FPS.Gameplay
             _canGoDown = true;
         }
 
-        // ===== API pública =====
+        // ===== MOVER HACIA ARRIBA =====
         public void StartMoveUp()
         {
             if (!_alreadyUsed && PointA != null && PointB != null)
@@ -75,9 +78,13 @@ namespace Unity.FPS.Gameplay
                 _movingUp = true;
                 _movingDown = false;
                 _time = 0f;
+
+                ElevatorIsMoving = true; // 🚫 bloquear crouch mientras sube
+                Debug.Log("🔒 Inputs bloqueados (ascensor subiendo)");
             }
         }
 
+        // ===== MOVER HACIA ABAJO =====
         public void StartMoveDown()
         {
             if (_canGoDown && PointA != null && PointB != null)
@@ -85,6 +92,8 @@ namespace Unity.FPS.Gameplay
                 _movingDown = true;
                 _movingUp = false;
                 _time = 0f;
+
+                ElevatorIsMoving = true; // también bloquea mientras baja (puedes quitarlo si no quieres)
 
                 if (KillZone != null)
                 {
@@ -112,6 +121,9 @@ namespace Unity.FPS.Gameplay
                     _movingUp = false;
                     _time = 0f;
                     OnReachedTop();
+
+                    ElevatorIsMoving = false; // ✅ liberar input
+                    Debug.Log("🔓 Inputs desbloqueados (ascensor arriba)");
                 }
             }
             else if (_movingDown && PointA != null && PointB != null)
@@ -125,18 +137,19 @@ namespace Unity.FPS.Gameplay
                 {
                     _movingDown = false;
                     _time = 0f;
-                    Debug.Log("✔ Ascensor volvió a bajar");
+
+                    ElevatorIsMoving = false; // ✅ liberar input
+                    Debug.Log("✔ Ascensor volvió a bajar y desbloqueó inputs");
                 }
             }
         }
 
-        // ===== Lógica KillZone =====
+        // ===== LÓGICA KILLZONE =====
         void OnReachedTop()
         {
             if (KillZone != null)
                 StartCoroutine(EnableKillZoneAfterDelay());
 
-            //Avisar cuando llegue arriba
             EventManager.Broadcast(new ElevatorReachedTopEvent());
             Debug.Log("📢 Evento lanzado: Ascensor llegó al punto B");
         }
@@ -151,6 +164,7 @@ namespace Unity.FPS.Gameplay
             }
         }
 
+        // ===== RESETEO =====
         public void ResetElevatorAndKillZone()
         {
             if (PlatformToMove != null && PointA != null)
@@ -163,7 +177,9 @@ namespace Unity.FPS.Gameplay
                 KillZone.SetActive(false);
 
             _alreadyUsed = false;
-            _canGoDown = false;   // 👈 reset también bloquea el bajar
+            _canGoDown = false;
+
+            ElevatorIsMoving = false; // ✅ asegurarse de liberar input
 
             Debug.Log("Ascensor reseteado y KillZone desactivada");
         }

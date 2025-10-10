@@ -1,5 +1,7 @@
 using UnityEngine;
 using Unity.FPS.Gameplay; // para ObjectiveElevatorPoints
+using Unity.FPS.Game;
+
 
 public class ElevatorUseZone : MonoBehaviour
 {
