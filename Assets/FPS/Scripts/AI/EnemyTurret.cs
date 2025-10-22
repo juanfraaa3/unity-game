@@ -12,17 +12,25 @@ namespace Unity.FPS.AI
             Attack,
         }
 
+        [Header("Turret Components")]
         public Transform TurretPivot;
         public Transform TurretAimPoint;
         public Animator Animator;
+
+        [Header("Aiming Settings")]
+        [Tooltip("Altura relativa donde la torreta apunta (1.6 = cabeza, 0.8 = pecho, 0 = pies)")]
+        public float AimVerticalOffset = 0.8f;
         public float AimRotationSharpness = 5f;
         public float LookAtRotationSharpness = 2.5f;
         public float DetectionFireDelay = 1f;
         public float AimingTransitionBlendTime = 1f;
 
-        [Tooltip("The random hit damage effects")]
-        public ParticleSystem[] RandomHitSparks;
+        [Header("Prediction Settings")]
+        [Tooltip("Cuánto tiempo anticipa la torreta el movimiento del jugador (en segundos)")]
+        public float PredictionTime = 0.3f;
 
+        [Header("FX & Audio")]
+        public ParticleSystem[] RandomHitSparks;
         public ParticleSystem[] OnDetectVfx;
         public AudioClip OnDetectSfx;
 
@@ -36,6 +44,10 @@ namespace Unity.FPS.AI
         Quaternion m_PreviousPivotAimingRotation;
         Quaternion m_PivotAimingRotation;
 
+        Transform m_PlayerTransform;
+        Vector3 m_LastPlayerPos;
+        Vector3 m_PlayerVelocity;
+
         const string k_AnimOnDamagedParameter = "OnDamaged";
         const string k_AnimIsActiveParameter = "IsActive";
 
@@ -46,56 +58,78 @@ namespace Unity.FPS.AI
             m_Health.OnDamaged += OnDamaged;
 
             m_EnemyController = GetComponent<EnemyController>();
-            DebugUtility.HandleErrorIfNullGetComponent<EnemyController, EnemyTurret>(m_EnemyController, this,
-                gameObject);
+            DebugUtility.HandleErrorIfNullGetComponent<EnemyController, EnemyTurret>(m_EnemyController, this, gameObject);
 
             m_EnemyController.onDetectedTarget += OnDetectedTarget;
             m_EnemyController.onLostTarget += OnLostTarget;
 
-            // Remember the rotation offset between the pivot's forward and the weapon's forward
-            m_RotationWeaponForwardToPivot =
-                Quaternion.Inverse(m_EnemyController.GetCurrentWeapon().WeaponMuzzle.rotation) * TurretPivot.rotation;
+            // 🔹 Recalcular el offset de rotación correctamente para cada torreta
+            var muzzle = m_EnemyController.GetCurrentWeapon().WeaponMuzzle;
+            m_RotationWeaponForwardToPivot = Quaternion.Inverse(muzzle.rotation) * TurretPivot.rotation;
 
-            // Start with idle
             AiState = AIState.Idle;
-
             m_TimeStartedDetection = Mathf.NegativeInfinity;
             m_PreviousPivotAimingRotation = TurretPivot.rotation;
-        }
 
-        void Update()
-        {
-            UpdateCurrentAiState();
+            // 🔹 Buscar al jugador real
+            var player = GameObject.FindGameObjectWithTag("Player");
+            if (player)
+            {
+                m_PlayerTransform = player.transform;
+                m_LastPlayerPos = m_PlayerTransform.position;
+            }
         }
 
         void LateUpdate()
         {
+            // Calcular velocidad del jugador
+            if (m_PlayerTransform)
+            {
+                m_PlayerVelocity = (m_PlayerTransform.position - m_LastPlayerPos) / Time.deltaTime;
+                m_LastPlayerPos = m_PlayerTransform.position;
+            }
+
+            // Apuntar y disparar sincronizado
+            UpdateCurrentAiState();
             UpdateTurretAiming();
         }
 
         void UpdateCurrentAiState()
         {
-            // Handle logic 
             switch (AiState)
             {
                 case AIState.Attack:
                     bool mustShoot = Time.time > m_TimeStartedDetection + DetectionFireDelay;
-                    // Calculate the desired rotation of our turret (aim at target)
-                    Vector3 directionToTarget =
-                        (m_EnemyController.KnownDetectedTarget.transform.position - TurretAimPoint.position).normalized;
+
+                    if (!m_PlayerTransform)
+                        return;
+
+                    // 🎯 Predicción del movimiento del jugador
+                    Vector3 predictedPos = m_PlayerTransform.position + m_PlayerVelocity * PredictionTime;
+                    predictedPos += Vector3.up * AimVerticalOffset;
+
+                    // Calcular dirección al punto predicho
+                    Vector3 directionToTarget = (predictedPos - TurretAimPoint.position).normalized;
+
                     Quaternion offsettedTargetRotation =
                         Quaternion.LookRotation(directionToTarget) * m_RotationWeaponForwardToPivot;
-                    m_PivotAimingRotation = Quaternion.Slerp(m_PreviousPivotAimingRotation, offsettedTargetRotation,
-                        (mustShoot ? AimRotationSharpness : LookAtRotationSharpness) * Time.deltaTime);
 
-                    // shoot
+                    m_PivotAimingRotation = Quaternion.Slerp(
+                        m_PreviousPivotAimingRotation,
+                        offsettedTargetRotation,
+                        (mustShoot ? AimRotationSharpness : LookAtRotationSharpness) * Time.deltaTime
+                    );
+
+                    // ====================== DEBUG VISUAL ======================
+                    Debug.DrawLine(TurretAimPoint.position, predictedPos, Color.red);  // hacia el punto futuro
+                    Debug.DrawLine(TurretAimPoint.position, m_PlayerTransform.position, Color.green); // posición actual
+                    Debug.DrawRay(TurretAimPoint.position, directionToTarget * 10f, Color.blue);
+                    // ==========================================================
+
+                    // 🚀 Disparo sincronizado (al punto futuro del jugador)
                     if (mustShoot)
                     {
-                        Vector3 correctedDirectionToTarget =
-                            (m_PivotAimingRotation * Quaternion.Inverse(m_RotationWeaponForwardToPivot)) *
-                            Vector3.forward;
-
-                        m_EnemyController.TryAtack(TurretAimPoint.position + correctedDirectionToTarget);
+                        m_EnemyController.TryAtack(predictedPos);
                     }
 
                     break;
@@ -109,10 +143,13 @@ namespace Unity.FPS.AI
                 case AIState.Attack:
                     TurretPivot.rotation = m_PivotAimingRotation;
                     break;
+
                 default:
-                    // Use the turret rotation of the animation
-                    TurretPivot.rotation = Quaternion.Slerp(m_PivotAimingRotation, TurretPivot.rotation,
-                        (Time.time - m_TimeLostDetection) / AimingTransitionBlendTime);
+                    TurretPivot.rotation = Quaternion.Slerp(
+                        m_PivotAimingRotation,
+                        TurretPivot.rotation,
+                        (Time.time - m_TimeLostDetection) / AimingTransitionBlendTime
+                    );
                     break;
             }
 
@@ -126,26 +163,19 @@ namespace Unity.FPS.AI
                 int n = Random.Range(0, RandomHitSparks.Length - 1);
                 RandomHitSparks[n].Play();
             }
-
             Animator.SetTrigger(k_AnimOnDamagedParameter);
         }
 
         void OnDetectedTarget()
         {
             if (AiState == AIState.Idle)
-            {
                 AiState = AIState.Attack;
-            }
 
-            for (int i = 0; i < OnDetectVfx.Length; i++)
-            {
-                OnDetectVfx[i].Play();
-            }
+            foreach (var vfx in OnDetectVfx)
+                vfx.Play();
 
             if (OnDetectSfx)
-            {
                 AudioUtility.CreateSFX(OnDetectSfx, transform.position, AudioUtility.AudioGroups.EnemyDetection, 1f);
-            }
 
             Animator.SetBool(k_AnimIsActiveParameter, true);
             m_TimeStartedDetection = Time.time;
@@ -154,14 +184,10 @@ namespace Unity.FPS.AI
         void OnLostTarget()
         {
             if (AiState == AIState.Attack)
-            {
                 AiState = AIState.Idle;
-            }
 
-            for (int i = 0; i < OnDetectVfx.Length; i++)
-            {
-                OnDetectVfx[i].Stop();
-            }
+            foreach (var vfx in OnDetectVfx)
+                vfx.Stop();
 
             Animator.SetBool(k_AnimIsActiveParameter, false);
             m_TimeLostDetection = Time.time;

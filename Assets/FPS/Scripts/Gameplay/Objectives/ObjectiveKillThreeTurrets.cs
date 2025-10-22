@@ -1,94 +1,92 @@
-using UnityEngine;
 using Unity.FPS.Game;
+using UnityEngine;
 using System.Collections.Generic;
 
 namespace Unity.FPS.Gameplay
 {
-    public class ObjectiveKillSpecificEnemyType_FromSpawners : Objective
+    public class ObjectiveKillThreeTurrets_FromSpawners : Objective
     {
-        [Header("Configuración")]
-        [Tooltip("Nombre parcial o tag del tipo de enemigo a eliminar (por ejemplo, 'Turret' o 'EnemyTurret')")]
-        public string EnemyIdentifier = "Turret";
+        [Tooltip("Spawners que generan las torretas finales (EnemySpawnerResettable)")]
+        public List<EnemySpawnerResettable> TurretSpawners = new List<EnemySpawnerResettable>();
 
-        [Tooltip("Cantidad total de enemigos de este tipo que deben eliminarse para completar el objetivo")]
-        public int EnemiesToKillCount = 3;
-
-        [Tooltip("Siguiente objetivo a activar tras completar este (opcional)")]
+        [Tooltip("Siguiente objetivo a activar después de completar este")]
         public GameObject NextObjective;
 
-        private int m_KillCount = 0;
         private bool m_ObjectiveCompleted = false;
+
+        // 🔹 Lista interna para marcar qué spawners ya fueron “limpiados”
+        private HashSet<EnemySpawnerResettable> clearedSpawners = new HashSet<EnemySpawnerResettable>();
 
         protected override void Start()
         {
             base.Start();
 
-            // Suscribirse a los eventos globales
             EventManager.AddListener<EnemyKillEvent>(OnEnemyKilled);
-            EventManager.AddListener<PlayerDeathEvent>(OnPlayerDied); // 👈 Nuevo
 
             if (string.IsNullOrEmpty(Title))
                 Title = "Elimina las torretas finales";
 
             if (string.IsNullOrEmpty(Description))
-                Description = GetUpdatedCounter();
+                Description = "Destruye las tres torretas gigantes para completar el juego.";
+
+            UpdateObjective(string.Empty, GetUpdatedCounter(), "Torretas destruidas: 0/" + TurretSpawners.Count);
         }
 
         void OnEnemyKilled(EnemyKillEvent evt)
         {
-            if (m_ObjectiveCompleted)
+            if (m_ObjectiveCompleted || evt.Enemy == null)
                 return;
 
-            if (evt.Enemy == null)
-                return;
-
-            // Verificamos si el enemigo muerto coincide con el tipo buscado
-            bool isMatch =
-                evt.Enemy.name.Contains(EnemyIdentifier) ||
-                evt.Enemy.CompareTag(EnemyIdentifier);
-
-            if (isMatch)
+            // 🔹 Revisa a qué spawner pertenece el enemigo que murió
+            foreach (var spawner in TurretSpawners)
             {
-                m_KillCount++;
-                UpdateObjective("", GetUpdatedCounter(), "Torretas destruidas: " + m_KillCount + "/" + EnemiesToKillCount);
+                if (spawner == null)
+                    continue;
 
-                if (m_KillCount >= EnemiesToKillCount)
+                if (evt.Enemy.transform.IsChildOf(spawner.transform))
                 {
-                    CompleteObjective("", GetUpdatedCounter(), "¡Has destruido todas las torretas!");
-                    m_ObjectiveCompleted = true;
+                    // Si ese spawner aún no estaba marcado, se marca ahora
+                    if (!clearedSpawners.Contains(spawner))
+                        clearedSpawners.Add(spawner);
 
-                    if (NextObjective != null)
-                        NextObjective.SetActive(true);
+                    // Actualizar UI
+                    UpdateObjective(string.Empty, GetUpdatedCounter(),
+                        "Torretas destruidas: " + clearedSpawners.Count + "/" + TurretSpawners.Count);
 
-                    CleanupListeners();
+                    // Verificar si ya se destruyeron todas
+                    if (clearedSpawners.Count >= TurretSpawners.Count)
+                    {
+                        CompleteFinalObjective();
+                    }
+                    return;
                 }
             }
         }
 
-        // 👇 Nuevo: si el jugador muere, se reinicia el progreso
-        void OnPlayerDied(PlayerDeathEvent evt)
-        {
-            if (m_ObjectiveCompleted)
-                return;
-
-            m_KillCount = 0;
-            UpdateObjective("", GetUpdatedCounter(), "Has muerto. Se reinicia el conteo de torretas.");
-        }
-
         string GetUpdatedCounter()
         {
-            return m_KillCount + " / " + EnemiesToKillCount;
+            return clearedSpawners.Count + " / " + TurretSpawners.Count;
         }
 
-        void CleanupListeners()
+        void CompleteFinalObjective()
         {
+            m_ObjectiveCompleted = true;
+
+            CompleteObjective(string.Empty, string.Empty, "¡Has destruido todas las torretas!");
+
+            if (NextObjective != null)
+                NextObjective.SetActive(true);
+
+            // 🔹 Registrar tramo final en PlayerStats
+            if (PlayerStats.Instance != null)
+                PlayerStats.Instance.RegisterCheckpoint("Final_Level");
+
             EventManager.RemoveListener<EnemyKillEvent>(OnEnemyKilled);
-            EventManager.RemoveListener<PlayerDeathEvent>(OnPlayerDied);
         }
 
         void OnDestroy()
         {
-            CleanupListeners();
+            EventManager.RemoveListener<EnemyKillEvent>(OnEnemyKilled);
         }
     }
 }

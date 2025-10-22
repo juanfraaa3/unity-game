@@ -176,7 +176,7 @@ public class WaveManager : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        Debug.Log("Algo entró al trigger: " + other.name);
+        //Debug.Log("Algo entró al trigger: " + other.name);
 
         if (other.CompareTag("Player"))
         {

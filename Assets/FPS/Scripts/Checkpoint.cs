@@ -1,4 +1,6 @@
 using UnityEngine;
+using Unity.FPS.Game;
+
 
 public class Checkpoint : MonoBehaviour
 {
@@ -7,7 +9,14 @@ public class Checkpoint : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             CheckpointManager.Instance.SetCheckpoint(transform.position);
-            Debug.Log("Checkpoint activado en: " + transform.position);
+
+            if (PlayerStats.Instance != null)
+            {
+                PlayerStats.Instance.RegisterCheckpoint(gameObject.name);
+            }
+
+            //Debug.Log("Checkpoint activado en: " + transform.position);
         }
     }
+
 }

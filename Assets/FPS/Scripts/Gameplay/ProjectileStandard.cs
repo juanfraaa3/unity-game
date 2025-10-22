@@ -6,7 +6,8 @@ namespace Unity.FPS.Gameplay
 {
     public class ProjectileStandard : ProjectileBase
     {
-        [Header("General")] [Tooltip("Radius of this projectile's collision detection")]
+        [Header("General")]
+        [Tooltip("Radius of this projectile's collision detection")]
         public float Radius = 0.01f;
 
         [Tooltip("Transform representing the root of the projectile (used for accurate collision detection)")]
@@ -27,13 +28,14 @@ namespace Unity.FPS.Gameplay
         [Tooltip("Offset along the hit normal where the VFX will be spawned")]
         public float ImpactVfxSpawnOffset = 0.1f;
 
-        [Tooltip("Clip to play on impact")] 
+        [Tooltip("Clip to play on impact")]
         public AudioClip ImpactSfxClip;
 
         [Tooltip("Layers this projectile can collide with")]
         public LayerMask HittableLayers = -1;
 
-        [Header("Movement")] [Tooltip("Speed of the projectile")]
+        [Header("Movement")]
+        [Tooltip("Speed of the projectile")]
         public float Speed = 20f;
 
         [Tooltip("Downward acceleration from gravity")]
@@ -46,13 +48,15 @@ namespace Unity.FPS.Gameplay
         [Tooltip("Determines if the projectile inherits the velocity that the weapon's muzzle had when firing")]
         public bool InheritWeaponVelocity = false;
 
-        [Header("Damage")] [Tooltip("Damage of the projectile")]
+        [Header("Damage")]
+        [Tooltip("Damage of the projectile")]
         public float Damage = 40f;
 
         [Tooltip("Area of damage. Keep empty if you don<t want area damage")]
         public DamageArea AreaOfDamage;
 
-        [Header("Debug")] [Tooltip("Color of the projectile radius debug view")]
+        [Header("Debug")]
+        [Tooltip("Color of the projectile radius debug view")]
         public Color RadiusColor = Color.cyan * 0.2f;
 
         ProjectileBase m_ProjectileBase;
@@ -222,16 +226,15 @@ namespace Unity.FPS.Gameplay
 
         void OnHit(Vector3 point, Vector3 normal, Collider collider)
         {
-            // damage
+            // 🔸 Aplicar daño
             if (AreaOfDamage)
             {
-                // area damage
-                AreaOfDamage.InflictDamageInArea(Damage, point, HittableLayers, k_TriggerInteraction,
-                    m_ProjectileBase.Owner);
+                // Daño por área
+                AreaOfDamage.InflictDamageInArea(Damage, point, HittableLayers, k_TriggerInteraction, m_ProjectileBase.Owner);
             }
             else
             {
-                // point damage
+                // Daño puntual (impacto directo)
                 Damageable damageable = collider.GetComponent<Damageable>();
                 if (damageable)
                 {
@@ -239,26 +242,52 @@ namespace Unity.FPS.Gameplay
                 }
             }
 
-            // impact vfx
+            // 🔹 Registrar impacto del jugador (solo si golpea algo con Health o Damageable)
+            if (PlayerStats.Instance != null
+    && m_ProjectileBase.Owner != null
+    && m_ProjectileBase.Owner.CompareTag("Player"))
+            {
+                bool isValidTarget = (collider.GetComponent<Health>() != null || collider.GetComponent<Damageable>() != null);
+
+                if (isValidTarget)
+                {
+                    string weaponName = m_ProjectileBase.WeaponName != null ? m_ProjectileBase.WeaponName : "UnknownWeapon";
+                    PlayerStats.Instance.RegisterHit(weaponName);
+                    Debug.Log($"💥 Impacto válido registrado ({weaponName}) en {collider.name}");
+                }
+                else
+                {
+                    Debug.Log($"⚪ Impacto NO contado ({collider.name}) — sin componente Health/Damageable");
+                    // ⚠️ No actualizamos lastShotgunHitTime en este caso
+                }
+            }
+
+
+            // 🔸 Efecto visual del impacto
             if (ImpactVfx)
             {
-                GameObject impactVfxInstance = Instantiate(ImpactVfx, point + (normal * ImpactVfxSpawnOffset),
-                    Quaternion.LookRotation(normal));
+                GameObject impactVfxInstance = Instantiate(
+                    ImpactVfx,
+                    point + (normal * ImpactVfxSpawnOffset),
+                    Quaternion.LookRotation(normal)
+                );
+
                 if (ImpactVfxLifetime > 0)
                 {
                     Destroy(impactVfxInstance.gameObject, ImpactVfxLifetime);
                 }
             }
 
-            // impact sfx
+            // 🔸 Sonido del impacto
             if (ImpactSfxClip)
             {
                 AudioUtility.CreateSFX(ImpactSfxClip, point, AudioUtility.AudioGroups.Impact, 1f, 3f);
             }
 
-            // Self Destruct
+            // 🔸 Destruir proyectil tras impacto
             Destroy(this.gameObject);
         }
+
 
         void OnDrawGizmosSelected()
         {

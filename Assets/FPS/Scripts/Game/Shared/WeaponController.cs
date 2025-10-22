@@ -444,34 +444,51 @@ namespace Unity.FPS.Game
 
         void HandleShoot()
         {
-            //Debug.Log($"{WeaponName} disparó en {Time.time}, Ammo={m_CurrentAmmo}");
+            // 🔹 Registrar disparo del jugador (solo si no es escopeta)
+            if (PlayerStats.Instance != null && Owner != null && Owner.CompareTag("Player"))
+            {
+                if (WeaponName.ToLower().Contains("shotgun"))
+                {
+                    PlayerStats.Instance.RegisterShotgunMiss();
+                }
+                else
+                {
+                    PlayerStats.Instance.RegisterShot(WeaponName);
+                }
+            }
+
+
             int bulletsPerShotFinal = ShootType == WeaponShootType.Charge
                 ? Mathf.CeilToInt(CurrentCharge * BulletsPerShot)
                 : BulletsPerShot;
 
-            // spawn all bullets with random direction
+            // 🔹 Crear los proyectiles (uno por perdigón)
             for (int i = 0; i < bulletsPerShotFinal; i++)
             {
                 Vector3 shotDirection = GetShotDirectionWithinSpread(WeaponMuzzle);
                 ProjectileBase newProjectile = Instantiate(ProjectilePrefab, WeaponMuzzle.position,
-                    Quaternion.LookRotation(shotDirection));
+    Quaternion.LookRotation(shotDirection));
+
+                // ✅ Asignar el nombre del arma antes de disparar
+                newProjectile.WeaponName = WeaponName;
+
                 newProjectile.Shoot(this);
+
             }
 
-            // muzzle flash
+            // 🔹 Efecto visual del disparo (muzzle flash)
             if (MuzzleFlashPrefab != null)
             {
                 GameObject muzzleFlashInstance = Instantiate(MuzzleFlashPrefab, WeaponMuzzle.position,
                     WeaponMuzzle.rotation, WeaponMuzzle.transform);
-                // Unparent the muzzleFlashInstance
+
                 if (UnparentMuzzleFlash)
-                {
                     muzzleFlashInstance.transform.SetParent(null);
-                }
 
                 Destroy(muzzleFlashInstance, 2f);
             }
 
+            // 🔹 Balas físicas (si aplica)
             if (HasPhysicalBullets)
             {
                 ShootShell();
@@ -480,13 +497,13 @@ namespace Unity.FPS.Game
 
             m_LastTimeShot = Time.time;
 
-            // play shoot SFX
+            // 🔹 Sonido de disparo
             if (ShootSfx && !UseContinuousShootSound)
             {
                 m_ShootAudioSource.PlayOneShot(ShootSfx);
             }
 
-            // Trigger attack animation if there is any
+            // 🔹 Animación
             if (WeaponAnimator)
             {
                 WeaponAnimator.SetTrigger(k_AnimAttackParameter);
@@ -495,6 +512,7 @@ namespace Unity.FPS.Game
             OnShoot?.Invoke();
             OnShootProcessed?.Invoke();
         }
+
 
         public Vector3 GetShotDirectionWithinSpread(Transform shootTransform)
         {

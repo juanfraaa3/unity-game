@@ -23,10 +23,13 @@ namespace Unity.FPS.Game
 
         bool m_IsDead;
 
+        // 🔹 NUEVO: Guardar última fuente de daño
+        GameObject lastDamageSource;
+
         void Start()
         {
             CurrentHealth = MaxHealth;
-            Debug.Log($"{gameObject.name} inicia con {CurrentHealth}/{MaxHealth} de vida");
+            //Debug.Log($"{gameObject.name} inicia con {CurrentHealth}/{MaxHealth} de vida");
         }
 
         public void Heal(float healAmount)
@@ -52,7 +55,8 @@ namespace Unity.FPS.Game
             CurrentHealth -= damage;
             CurrentHealth = Mathf.Clamp(CurrentHealth, 0f, MaxHealth);
 
-            Debug.Log($"{gameObject.name} recibió {damage}. Vida: {healthBefore} → {CurrentHealth}");
+            // Guardar la última fuente de daño (enemigo, proyectil, etc.)
+            lastDamageSource = damageSource;
 
             // call OnDamage action
             float trueDamageAmount = healthBefore - CurrentHealth;
@@ -68,6 +72,9 @@ namespace Unity.FPS.Game
         {
             CurrentHealth = 0f;
 
+            // Al morir por vacío u otras causas, no hay atacante
+            lastDamageSource = null;
+
             // call OnDamage action
             OnDamaged?.Invoke(MaxHealth, null);
 
@@ -79,14 +86,29 @@ namespace Unity.FPS.Game
             if (m_IsDead)
                 return;
 
-            // call OnDie action
             if (CurrentHealth <= 0f)
             {
                 m_IsDead = true;
-                Debug.Log($"{gameObject.name} murió"); // 👈 LOG de muerte
+                //Debug.Log($"{gameObject.name} murió");
+
                 OnDie?.Invoke();
 
+                // 🔹 Registrar muerte solo si es el jugador
+                if (CompareTag("Player") && PlayerStats.Instance != null)
+                {
+                    // Diferenciar tipo de muerte
+                    if (lastDamageSource == null)
+                        PlayerStats.Instance.RegisterVoidDeath();
+                    else
+                        PlayerStats.Instance.RegisterEnemyDeath();
+                }
+                // 🔹 Si es un enemigo
+                else if (CompareTag("Enemy") && PlayerStats.Instance != null)
+                {
+                    PlayerStats.Instance.RegisterEnemyKill();
+                }
             }
         }
+
     }
 }

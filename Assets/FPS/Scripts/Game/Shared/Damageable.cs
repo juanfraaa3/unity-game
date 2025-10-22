@@ -41,7 +41,7 @@ namespace Unity.FPS.Game
                     totalDamage *= SensibilityToSelfdamage;
                 }
 
-                Debug.Log($"{gameObject.name} recibió {totalDamage} (daño base={damage}, multiplier={DamageMultiplier}) de {damageSource.name}");
+                //Debug.Log($"{gameObject.name} recibió {totalDamage} (daño base={damage}, multiplier={DamageMultiplier}) de {damageSource.name}");
 
                 // apply the damages
                 Health.TakeDamage(totalDamage, damageSource);

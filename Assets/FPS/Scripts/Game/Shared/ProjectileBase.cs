@@ -10,7 +10,8 @@ namespace Unity.FPS.Game
         public Vector3 InitialDirection { get; private set; }
         public Vector3 InheritedMuzzleVelocity { get; private set; }
         public float InitialCharge { get; private set; }
-
+        public WeaponController WeaponSource; // referencia directa al arma que disparó este proyectil
+        public string WeaponName;
         public UnityAction OnShoot;
 
         public void Shoot(WeaponController controller)
