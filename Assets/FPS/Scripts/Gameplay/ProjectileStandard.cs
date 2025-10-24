@@ -230,12 +230,14 @@ namespace Unity.FPS.Gameplay
             if (AreaOfDamage)
             {
                 // Daño por área
-                AreaOfDamage.InflictDamageInArea(Damage, point, HittableLayers, k_TriggerInteraction, m_ProjectileBase.Owner);
+                AreaOfDamage.InflictDamageInArea(
+                    Damage, point, HittableLayers, k_TriggerInteraction, m_ProjectileBase.Owner
+                );
             }
             else
             {
                 // Daño puntual (impacto directo)
-                Damageable damageable = collider.GetComponent<Damageable>();
+                Damageable damageable = collider.GetComponentInParent<Damageable>();
                 if (damageable)
                 {
                     damageable.InflictDamage(Damage, false, m_ProjectileBase.Owner);
@@ -244,24 +246,29 @@ namespace Unity.FPS.Gameplay
 
             // 🔹 Registrar impacto del jugador (solo si golpea algo con Health o Damageable)
             if (PlayerStats.Instance != null
-    && m_ProjectileBase.Owner != null
-    && m_ProjectileBase.Owner.CompareTag("Player"))
+                && m_ProjectileBase.Owner != null
+                && m_ProjectileBase.Owner.CompareTag("Player"))
             {
-                bool isValidTarget = (collider.GetComponent<Health>() != null || collider.GetComponent<Damageable>() != null);
+                // 🟩 NUEVO: busca en el padre también, no solo en el collider
+                bool isValidTarget = (
+                    collider.GetComponentInParent<Health>() != null ||
+                    collider.GetComponentInParent<Damageable>() != null
+                );
 
                 if (isValidTarget)
                 {
-                    string weaponName = m_ProjectileBase.WeaponName != null ? m_ProjectileBase.WeaponName : "UnknownWeapon";
+                    string weaponName = !string.IsNullOrEmpty(m_ProjectileBase.WeaponName)
+                        ? m_ProjectileBase.WeaponName
+                        : "UnknownWeapon";
+
                     PlayerStats.Instance.RegisterHit(weaponName);
                     Debug.Log($"💥 Impacto válido registrado ({weaponName}) en {collider.name}");
                 }
                 else
                 {
-                    Debug.Log($"⚪ Impacto NO contado ({collider.name}) — sin componente Health/Damageable");
-                    // ⚠️ No actualizamos lastShotgunHitTime en este caso
+                    Debug.Log($"⚪ Impacto NO contado ({collider.name}) — sin componente Health/Damageable en jerarquía");
                 }
             }
-
 
             // 🔸 Efecto visual del impacto
             if (ImpactVfx)
@@ -273,9 +280,7 @@ namespace Unity.FPS.Gameplay
                 );
 
                 if (ImpactVfxLifetime > 0)
-                {
                     Destroy(impactVfxInstance.gameObject, ImpactVfxLifetime);
-                }
             }
 
             // 🔸 Sonido del impacto
@@ -285,8 +290,9 @@ namespace Unity.FPS.Gameplay
             }
 
             // 🔸 Destruir proyectil tras impacto
-            Destroy(this.gameObject);
+            Destroy(gameObject);
         }
+
 
 
         void OnDrawGizmosSelected()

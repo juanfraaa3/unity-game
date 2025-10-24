@@ -111,7 +111,7 @@ PrefabInstance:
     - target: {fileID: 6370966072896210225, guid: 25a1b0efadb966e44889fce712c8ff8d,
         type: 3}
       propertyPath: MaxHealth
-      value: 3000
+      value: 400
       objectReference: {fileID: 0}
     - target: {fileID: 7406548990343174644, guid: 25a1b0efadb966e44889fce712c8ff8d,
         type: 3}
@@ -155,6 +155,12 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 7420276637671385230}
   m_SourcePrefab: {fileID: 100100000, guid: 25a1b0efadb966e44889fce712c8ff8d, type: 3}
+--- !u!1 &3425249644337571129 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9200139261743394960, guid: 25a1b0efadb966e44889fce712c8ff8d,
+    type: 3}
+  m_PrefabInstance: {fileID: 5775193128567887273}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &5466763743897457789 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2015434656898269652, guid: 25a1b0efadb966e44889fce712c8ff8d,
@@ -207,8 +213,8 @@ MonoBehaviour:
     CrosshairSprite: {fileID: 0}
     CrosshairSize: 0
     CrosshairColor: {r: 0, g: 0, b: 0, a: 0}
-  WeaponRoot: {fileID: 0}
-  WeaponMuzzle: {fileID: 0}
+  WeaponRoot: {fileID: 3425249644337571129}
+  WeaponMuzzle: {fileID: 5565856026880535218}
   ShootType: 0
   ProjectilePrefab: {fileID: 0}
   DelayBetweenShots: 2
@@ -267,3 +273,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ad90ba0b1477764da373f5ec01a8cb5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!4 &5565856026880535218 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2096565386399891227, guid: 25a1b0efadb966e44889fce712c8ff8d,
+    type: 3}
+  m_PrefabInstance: {fileID: 5775193128567887273}
+  m_PrefabAsset: {fileID: 0}

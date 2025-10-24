@@ -13,6 +13,11 @@ PrefabInstance:
       propertyPath: clockwise
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 598886864624783512, guid: 597bd18ab432690448a2f096620aa38d,
+        type: 3}
+      propertyPath: MaxHealth
+      value: 400
+      objectReference: {fileID: 0}
     - target: {fileID: 5466763743897457777, guid: 597bd18ab432690448a2f096620aa38d,
         type: 3}
       propertyPath: m_LocalPosition.x
